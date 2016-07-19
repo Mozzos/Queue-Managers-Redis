@@ -15,7 +15,7 @@ class QueueManagersServiceProvider extends ServiceProvider
     public function boot()
     {
         $this->publishes([
-            __DIR__ . '/config/queue-managers.php' => config_path('queue-managers.php')
+            __DIR__ . '/../config/queue-managers.php' => config_path('queue-managers.php')
         ]);
     }
 
