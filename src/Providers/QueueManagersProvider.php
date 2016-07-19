@@ -1,6 +1,6 @@
 <?php
 
-namespace Mozzos\Providers;
+namespace Mozzos\QueueManagers\Providers;
 use Illuminate\Support\ServiceProvider;
 use Mozzos\QueueManagers\QueueJob;
 use Queue;
