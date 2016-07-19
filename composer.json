@@ -1,0 +1,22 @@
+{
+  "name": "mozzos/queue-managers-redis",
+  "description": "This example can help you manage the queue as well as the task.",
+  "type": "library",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Brett Cao",
+      "email": "brettcaomail@gmail.com"
+    }
+  ],
+  "minimum-stability": "dev",
+  "require": {
+    "php": ">=5.5.9",
+    "illuminate/support": "5.*"
+  },
+  "autoload": {
+    "psr-4": {
+      "Mozzos\\QueueManagers\\": "src/"
+    }
+  }
+}
