@@ -95,6 +95,19 @@ class QueueJob
         ];
     }
 
+    /**
+     * @return bool
+     */
+    function remove(){
+        if ($this->status !=2){
+            $this->delete = 1;
+            QueueManagers::put($this->queueId,$this);
+            return true;
+        }
+        return false;
+
+    }
+
     function toJson()
     {
         return json_encode($this->toArray());

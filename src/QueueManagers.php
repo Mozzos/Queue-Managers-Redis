@@ -9,6 +9,10 @@ use Redis;
 
 class QueueManagers
 {
+    /**
+     * @param $queueId
+     * @return null|QueueJob
+     */
     static function get($queueId)
     {
         $result = Redis::HEXISTS(config('queue-managers.name'), $queueId);
