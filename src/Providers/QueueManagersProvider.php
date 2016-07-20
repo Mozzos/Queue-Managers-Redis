@@ -18,7 +18,7 @@ class QueueManagersProvider extends ServiceProvider
      */
     public function boot()
     {
-        if (config('queue.default')!='sync'&& !empty(config('queue.default'))){
+        if (config('queue.default')=='redis'){
             Queue::after(function ($event) {
                 if (isset($event->data['id'])) {
                     $queueJob = $this->client()->get($event->data['id']);
