@@ -8,7 +8,7 @@ use Illuminate\Foundation\Console\QueuedJob;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Facades\Config;
 use Mozzos\NLPTool\Client;
-use Redis;
+use Illuminate\Support\Facades\Redis;
 
 class QueueJob
 {
@@ -36,6 +36,8 @@ class QueueJob
 
     private $data = '';
 
+    private $type = 'redis';
+
     function __construct($queueId = null, $data = null)
     {
         if ($queueId) {
@@ -43,6 +45,9 @@ class QueueJob
         }
         if (isset($data['data']['commandName'])) {
             $this->data = $data['data']['commandName'];
+        }
+        if (config('queue.default')){
+            $type = config('queue.default');
         }
         $time = Carbon::now()->timestamp;
         $this->create_time = $time;
@@ -59,6 +64,9 @@ class QueueJob
             $this->data = $data['data']['commandName'];
         }
         $this->last_time = Carbon::now()->timestamp;
+        if (config('queue.default')){
+            $type = config('queue.default');
+        }
         $this->execute_count++;
         if ($this->status == 0) {
             $this->status = 1;
@@ -91,7 +99,8 @@ class QueueJob
             'create_time' => $this->create_time,
             'last_time' => $this->last_time,
             'execute_count' => $this->execute_count,
-            'data' => isset($this->data) ? $this->data : ''
+            'data' => isset($this->data) ? $this->data : '',
+            'type' => config('queue.default')
         ];
     }
 
@@ -125,6 +134,7 @@ class QueueJob
             $instace->last_time = $array['last_time'];
             $instace->execute_count = $array['execute_count'];
             $instace->data = isset($array['data']) ? $array['data'] : '';
+            $instace->type = config('queue.default');
         } else if (is_object($array)) {
             $instace = new static();
             $instace->queueId = $array->queueId;
@@ -135,6 +145,7 @@ class QueueJob
             $instace->last_time = $array->last_time;
             $instace->execute_count = $array->execute_count;
             $instace->data = isset($array->data) ? $array->data : '';
+            $instace->type = $array->type;
         }
         return $instace;
     }

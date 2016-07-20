@@ -6,7 +6,7 @@ namespace Mozzos\QueueManagers;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Config;
-use Redis;
+use Illuminate\Support\Facades\Redis;
 
 class QueueManagers
 {

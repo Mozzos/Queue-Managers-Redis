@@ -2,7 +2,7 @@
 
 use QueueManagers as Client;
 use Ramsey\Uuid\Uuid;
-use Redis;
+use Illuminate\Support\Facades\Redis;
 
 trait QueueTraits
 {
