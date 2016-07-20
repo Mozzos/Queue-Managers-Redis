@@ -10,11 +10,11 @@ use Illuminate\Support\Facades\Config;
 use Mozzos\NLPTool\Client;
 use Redis;
 
-class QueueJob implements QueueManagers
+class QueueJob
 {
     use InteractsWithQueue;
 
-    private $qid;
+    private $queueId;
 
     # 0 未执行 1 执行中 2 已执行 3 删除
     private $status = 0;
@@ -26,7 +26,7 @@ class QueueJob implements QueueManagers
     private $error_count = 0;
 
     # 执行次数
-    private $execute_count = 0;
+    private $execute_count = 1;
 
     # 创建时间
     private $create_time;
@@ -34,78 +34,96 @@ class QueueJob implements QueueManagers
     # 最后执行时间
     private $last_time;
 
-    function __construct($qid = null)
+    private $data = '';
+
+    function __construct($queueId = null, $data = null)
     {
-        if ($qid){
-            $this->qid = $qid;
+        if ($queueId) {
+            $this->queueId = $queueId;
+        }
+        if (isset($data['data']['commandName'])) {
+            $this->data = $data['data']['commandName'];
         }
         $time = Carbon::now()->timestamp;
-        $this->create_time =$time;
+        $this->create_time = $time;
         $this->last_time = $time;
     }
 
-    function initialization(){
-        if ($this->delete = 1 ){
-            $this->delete();
+    function initialization($job, $data)
+    {
+        if ($this->delete == 1) {
+            $job->delete();
+            $this->status = 3;
+        }
+        if (isset($data['data']['commandName'])) {
+            $this->data = $data['data']['commandName'];
         }
         $this->last_time = Carbon::now()->timestamp;
         $this->execute_count++;
-        if ($this->status == 0){
+        if ($this->status == 0) {
             $this->status = 1;
-        }else if ($this->status == 1){
+        } else if ($this->status == 1) {
             $this->error_count++;
             $this->status == 0;
         }
         return $this;
     }
 
-    static function make($qid){
-        $queueJob = new static($qid);
+    static function make($queueId, $data)
+    {
+        $queueJob = new static($queueId, $data);
         return $queueJob;
     }
 
-    function finish(){
-        $this->status = 3;
+    function finish()
+    {
+        $this->status = 2;
         return $this;
     }
 
-    function toArray(){
+    function toArray()
+    {
         return [
-            'qid'=>$this->qid,
-            'status'=>$this->status,
-            'type' => $this->type,
+            'queueId' => $this->queueId,
+            'status' => $this->status,
+            'delete' => $this->delete,
             'error_count' => $this->error_count,
             'create_time' => $this->create_time,
-            'last_time'=> $this->last_time,
-            'execute_count'=>$this->execute_count
+            'last_time' => $this->last_time,
+            'execute_count' => $this->execute_count,
+            'data' => isset($this->data) ? $this->data : ''
         ];
     }
 
-    function toJson(){
+    function toJson()
+    {
         return json_encode($this->toArray());
     }
 
-    static function toBase(Array $array){
-        $instace = new static();
-        $instace->qid = $array['qid'];
-        $instace->status = $array['status'];
-        $instace->delete = $array['delete'];
-        $instace->error_count = $array['error_count'];
-        $instace->create_time = $array['create_time'];
-        $instace->last_time = $array['last_time'];
-        $instace->execute_count = $array['execute_count'];
-        return $instace;
-    }
-
-    static function get($qid)
+    static function toBase($array)
     {
-        $result = Redis::LINDEX(config('queue-managers.name'),$qid);
-        if ($result){
-            $result = json_decode($result);
-            return self::toBase($result);
-        }else{
-            return null;
+        if (is_array($array)) {
+            $instace = new static();
+            $instace->queueId = $array['queueId'];
+            $instace->status = $array['status'];
+            $instace->delete = $array['delete'];
+            $instace->error_count = $array['error_count'];
+            $instace->create_time = $array['create_time'];
+            $instace->last_time = $array['last_time'];
+            $instace->execute_count = $array['execute_count'];
+            $instace->data = isset($array['data']) ? $array['data'] : '';
+        } else if (is_object($array)) {
+            $instace = new static();
+            $instace->queueId = $array->queueId;
+            $instace->status = $array->status;
+            $instace->delete = $array->delete;
+            $instace->error_count = $array->error_count;
+            $instace->create_time = $array->create_time;
+            $instace->last_time = $array->last_time;
+            $instace->execute_count = $array->execute_count;
+            $instace->data = isset($array->data) ? $array->data : '';
         }
+        return $instace;
     }
 
 
@@ -118,6 +136,5 @@ class QueueJob implements QueueManagers
     {
         $this->$name = $value;
     }
-
 
 }

@@ -1,10 +1,13 @@
 <?php
 
 namespace Mozzos\QueueManagers\Providers;
+
 use Illuminate\Support\ServiceProvider;
 use Mozzos\QueueManagers\QueueJob;
+use Mozzos\QueueManagers\QueueManagers;
 use Queue;
-use Illuminate\Support\Facades\Redis;
+use Redis;
+
 class QueueManagersProvider extends ServiceProvider
 {
 
@@ -16,22 +19,22 @@ class QueueManagersProvider extends ServiceProvider
     public function boot()
     {
         Queue::after(function ($event) {
-            if (isset($event->data['qid'])){
-                $queueJob = QueueJob::get($event->data['qid']);
-                $queueJob = $queueJob->finish();
-                Redis::LSET(config('queue-managers.name'),$queueJob->qid,$queueJob->toJson());
+            if (isset($event->data['id'])) {
+                $queueJob = $this->client()->get($event->data['id']);
+                if ($queueJob) {
+                    $queueJob = $queueJob->finish();
+                    $this->client()->put($queueJob->queueId, $queueJob->toJson());
+                }
             }
         });
-        Queue::before(function ($event){
-            if (isset($event->data['qid'])){
-                $queueJob = QueueJob::get($event->data['qid']);
-                $queueJob = $queueJob->initialization();
-                Redis::LSET(config('queue-managers.name'),$queueJob->qid,$queueJob->toJson());
-            }else{
-                $index = Redis::LLen(config('queue-managers.name'));
-                $event->data[] = ['qid'=> $index++];
-                $queueJob = QueueJob::make($event->data['qid']);
-                Redis::LSET(config('queue-managers.name'),$queueJob->qid,$queueJob->toJson());
+        Queue::before(function ($event) {
+            $queueJob = $this->client()->get($event->data['id']);
+            if ($queueJob) {
+                $queueJob = $queueJob->initialization($event->job,$event->data);
+                $this->client()->put($queueJob->queueId, $queueJob->toJson());
+            } else {
+                $queueJob = QueueJob::make($event->data['id'],$event->data);
+                $this->client()->put($queueJob->queueId, $queueJob->toJson());
             }
         });
         Queue::failing(function ($event) {
@@ -49,5 +52,10 @@ class QueueManagersProvider extends ServiceProvider
     public function register()
     {
         //
+    }
+
+    public function client()
+    {
+        return new QueueManagers();
     }
 }
