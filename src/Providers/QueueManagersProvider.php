@@ -18,30 +18,32 @@ class QueueManagersProvider extends ServiceProvider
      */
     public function boot()
     {
-        Queue::after(function ($event) {
-            if (isset($event->data['id'])) {
+        if (config('queue.default')!='sync'&& !empty(config('queue.default'))){
+            Queue::after(function ($event) {
+                if (isset($event->data['id'])) {
+                    $queueJob = $this->client()->get($event->data['id']);
+                    if ($queueJob) {
+                        $queueJob = $queueJob->finish();
+                        $this->client()->put($queueJob->queueId, $queueJob->toJson());
+                    }
+                }
+            });
+            Queue::before(function ($event) {
                 $queueJob = $this->client()->get($event->data['id']);
                 if ($queueJob) {
-                    $queueJob = $queueJob->finish();
+                    $queueJob = $queueJob->initialization($event->job,$event->data);
+                    $this->client()->put($queueJob->queueId, $queueJob->toJson());
+                } else {
+                    $queueJob = QueueJob::make($event->data['id'],$event->data);
                     $this->client()->put($queueJob->queueId, $queueJob->toJson());
                 }
-            }
-        });
-        Queue::before(function ($event) {
-            $queueJob = $this->client()->get($event->data['id']);
-            if ($queueJob) {
-                $queueJob = $queueJob->initialization($event->job,$event->data);
-                $this->client()->put($queueJob->queueId, $queueJob->toJson());
-            } else {
-                $queueJob = QueueJob::make($event->data['id'],$event->data);
-                $this->client()->put($queueJob->queueId, $queueJob->toJson());
-            }
-        });
-        Queue::failing(function ($event) {
-            // $event->connectionName
-            // $event->data
-            // $event->data
-        });
+            });
+            Queue::failing(function ($event) {
+                // $event->connectionName
+                // $event->data
+                // $event->data
+            });
+        }
     }
 
     /**

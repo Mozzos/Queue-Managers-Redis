@@ -3,12 +3,14 @@
 namespace Mozzos\QueueManagers;
 
 
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Config;
-use Mozzos\NLPTool\Client;
 use Redis;
 
 class QueueManagers
 {
+
     /**
      * @param $queueId
      * @return null|QueueJob
@@ -24,19 +26,30 @@ class QueueManagers
         }
     }
 
-    static function all()
+    static function all($order = [])
     {
         $length = Redis::HLEN(config('queue-managers.name'));
         if ($length > 0) {
             $arrray = Redis::HVALS(config('queue-managers.name'));
             if (count($arrray > 0)) {
                 $jobs = [];
-                foreach ($arrray as $value) {
-                    if (!empty($value)) {
-                        $jobArray = json_decode($value);
-                        $jobs[] = QueueJob::toBase($jobArray);
-                    }else{
-                        return [];
+                if (!empty($order)) {
+                    $arrray = self::sort($arrray, $order);
+                    foreach ($arrray as $value) {
+                        if (!empty($value)) {
+                            $jobs[] = QueueJob::toBase($value);
+                        } else {
+                            return [];
+                        }
+                    }
+                } else {
+                    foreach ($arrray as $value) {
+                        if (!empty($value)) {
+                            $jobArray = json_decode($value);
+                            $jobs[] = QueueJob::toBase($jobArray);
+                        } else {
+                            return [];
+                        }
                     }
                 }
                 return $jobs;
@@ -46,12 +59,73 @@ class QueueManagers
         return [];
     }
 
-    static function put($queueId,$data)
+    static function put($queueId, $data)
     {
-        $flag = Redis::HMSET(config('queue-managers.name'),["$queueId"=>$data]);
-        if ($flag){
+        $flag = Redis::HMSET(config('queue-managers.name'), ["$queueId" => $data]);
+        if ($flag) {
             return true;
         }
         return false;
     }
+
+    function order($array)
+    {
+        $this->orders = $array;
+    }
+
+    static function sort(array $array, $order)
+    {
+        if (count($order) > 1) {
+            $res = [];
+            foreach ($array as $key => $row) {
+                $row = QueueJob::toBase(json_decode($row))->toArray();
+                ${$order[0]}[$key] = $row[$order[0]];
+                $res[] = $row;
+            }
+            if ($order[1] == 'desc') {
+                array_multisort(${$order[0]}, SORT_DESC, SORT_NUMERIC, $res);
+            } else {
+                array_multisort(${$order[0]}, SORT_ASC, SORT_NUMERIC, $res);
+            }
+            return $res;
+        }
+    }
+
+    static function pagination($order, $num)
+    {
+        $length = Redis::HLEN(config('queue-managers.name'));
+        if ($length > 0) {
+            $arrray = Redis::HVALS(config('queue-managers.name'));
+            if (count($arrray > 0)) {
+                $jobs = [];
+                if (!empty($order)) {
+                    $arrray = self::sort($arrray, $order);
+                    foreach ($arrray as $value) {
+                        if (!empty($value)) {
+                            $jobs[] = QueueJob::toBase($value);
+                        } else {
+                            return [];
+                        }
+                    }
+                } else {
+                    foreach ($arrray as $value) {
+                        if (!empty($value)) {
+                            $jobArray = json_decode($value);
+                            $jobs[] = QueueJob::toBase($jobArray);
+                        } else {
+                            return [];
+                        }
+                    }
+                }
+                return new LengthAwarePaginator($jobs, $length, $num, request('page') ? request('page') : null, [
+                    'path' => Paginator::resolveCurrentPath(),
+                    'pageName' => 'page',
+                ]);
+            }
+            return [];
+        }
+        return [];
+    }
+
+
 }

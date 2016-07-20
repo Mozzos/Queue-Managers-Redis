@@ -101,7 +101,7 @@ class QueueJob
     function remove(){
         if ($this->status !=2){
             $this->delete = 1;
-            QueueManagers::put($this->queueId,$this);
+            QueueManagers::put($this->queueId,$this->toJson());
             return true;
         }
         return false;
