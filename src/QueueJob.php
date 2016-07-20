@@ -145,7 +145,7 @@ class QueueJob
             $instace->last_time = $array->last_time;
             $instace->execute_count = $array->execute_count;
             $instace->data = isset($array->data) ? $array->data : '';
-            $instace->type = $array->type;
+            $instace->type = isset($array->type)?$array->type:'';
         }
         return $instace;
     }
