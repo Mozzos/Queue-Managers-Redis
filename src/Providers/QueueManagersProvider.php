@@ -18,41 +18,41 @@ class QueueManagersProvider extends ServiceProvider
      */
     public function boot()
     {
+        if (config('queue.default')!='sync'){
+            Queue::after(function ($event) {
+                if (isset($event->data['id'])) {
+                    $id = $event->data['id'];
+                } else if (isset($event->data['data'])) {
+                    $id = md5(json_encode($event->data['data']));
+                }
+                $queueJob = $this->client()->get($id);
+                if ($queueJob) {
+                    $queueJob = $queueJob->finish();
+                    $this->client()->put($queueJob->queueId, $queueJob->toJson());
+                }
 
-        Queue::after(function ($event) {
-            if (isset($event->data['id'])) {
-                $id = $event->data['id'];
-            } else if (isset($event->data['data'])) {
-                $id = md5(json_encode($event->data['data']));
-            }
-            $queueJob = $this->client()->get($id);
-            if ($queueJob) {
-                $queueJob = $queueJob->finish();
-                $this->client()->put($queueJob->queueId, $queueJob->toJson());
-            }
-
-        });
-        Queue::before(function ($event) {
-            if (isset($event->data['id'])) {
-                $id = $event->data['id'];
-            } else if (isset($event->data['data'])) {
-                $id = md5(json_encode($event->data['data']));
-            }
-            $queueJob = $this->client()->get($id);
-            if ($queueJob) {
-                $queueJob = $queueJob->initialization($event->job, $event->data);
-                $this->client()->put($queueJob->queueId, $queueJob->toJson());
-            } else {
-                $queueJob = QueueJob::make($id, $event->data);
-                $this->client()->put($queueJob->queueId, $queueJob->toJson());
-            }
-        });
-        Queue::failing(function ($event) {
-            // $event->connectionName
-            // $event->data
-            // $event->data
-        });
-
+            });
+            Queue::before(function ($event) {
+                if (isset($event->data['id'])) {
+                    $id = $event->data['id'];
+                } else if (isset($event->data['data'])) {
+                    $id = md5(json_encode($event->data['data']));
+                }
+                $queueJob = $this->client()->get($id);
+                if ($queueJob) {
+                    $queueJob = $queueJob->initialization($event->job, $event->data);
+                    $this->client()->put($queueJob->queueId, $queueJob->toJson());
+                } else {
+                    $queueJob = QueueJob::make($id, $event->data);
+                    $this->client()->put($queueJob->queueId, $queueJob->toJson());
+                }
+            });
+            Queue::failing(function ($event) {
+                // $event->connectionName
+                // $event->data
+                // $event->data
+            });
+        }
     }
 
     /**
