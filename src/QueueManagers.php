@@ -62,6 +62,7 @@ class QueueManagers
     static function put($queueId, $data)
     {
         $flag = Redis::HMSET(config('queue-managers.name'), ["$queueId" => $data]);
+        Redis::EXPIRE(config('queue-managers.name'),86400);
         if ($flag) {
             return true;
         }
@@ -117,7 +118,9 @@ class QueueManagers
                         }
                     }
                 }
-                return new LengthAwarePaginator($jobs, $length, $num, request('page') ? request('page') : null, [
+                $colltion = collect($jobs);
+                $colltions =  $colltion->forPage(request('page') ? request('page') : 1,10);
+                return new LengthAwarePaginator($colltions, $length, $num, request('page') ? request('page') : 1, [
                     'path' => Paginator::resolveCurrentPath(),
                     'pageName' => 'page',
                 ]);
