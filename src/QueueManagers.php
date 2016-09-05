@@ -94,6 +94,7 @@ class QueueManagers
 
     static function pagination($order, $num)
     {
+        $colltions = [];
         $length = Redis::HLEN(config('queue-managers.name'));
         if ($length > 0) {
             $arrray = Redis::HVALS(config('queue-managers.name'));
@@ -120,14 +121,14 @@ class QueueManagers
                 }
                 $colltion = collect($jobs);
                 $colltions =  $colltion->forPage(request('page') ? request('page') : 1,10);
-                return new LengthAwarePaginator($colltions, $length, $num, request('page') ? request('page') : 1, [
-                    'path' => Paginator::resolveCurrentPath(),
-                    'pageName' => 'page',
-                ]);
+
             }
-            return [];
+
         }
-        return [];
+        return new LengthAwarePaginator($colltions, $length, $num, request('page') ? request('page') : 1, [
+            'path' => Paginator::resolveCurrentPath(),
+            'pageName' => 'page',
+        ]);
     }
 
 
