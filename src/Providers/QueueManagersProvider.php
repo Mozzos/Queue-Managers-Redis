@@ -2,6 +2,8 @@
 
 namespace Mozzos\QueueManagers\Providers;
 
+use Illuminate\Queue\Events\JobProcessed;
+use Illuminate\Queue\Events\JobProcessing;
 use Illuminate\Support\ServiceProvider;
 use Mozzos\QueueManagers\QueueJob;
 use Mozzos\QueueManagers\QueueManagers;
@@ -19,9 +21,15 @@ class QueueManagersProvider extends ServiceProvider
     public function boot()
     {
         if (config('queue.default')!='sync'){
-            Queue::after(function ($event) {
-                if (isset($event->data['id'])) {
-                    $id = $event->data['id'];
+            Queue::after(function (JobProcessed $event) {
+                $job = '';
+                    if (isset($event->data['data']['command'])){
+                        $job = unserialize($event->data['data']['command']);
+                    }else if (isset($event->data['data']['data'])){
+                        $job = unserialize($event->data['data']['data']);
+                    }
+                if (!empty($job)) {
+                    $id = sha1(serialize($job));
                 } else if (isset($event->data['data'])) {
                     $id = md5(json_encode($event->data['data']));
                 }
@@ -32,9 +40,15 @@ class QueueManagersProvider extends ServiceProvider
                 }
 
             });
-            Queue::before(function ($event) {
-                if (isset($event->data['id'])) {
-                    $id = $event->data['id'];
+            Queue::before(function (JobProcessing $event) {
+                $job = '';
+                    if (isset($event->data['data']['command'])){
+                        $job = unserialize($event->data['data']['command']);
+                    }else if (isset($event->data['data']['data'])){
+                        $job = unserialize($event->data['data']['data']);
+                    }
+                if (!empty($job)) {
+                    $id = sha1(serialize($job));
                 } else if (isset($event->data['data'])) {
                     $id = md5(json_encode($event->data['data']));
                 }
